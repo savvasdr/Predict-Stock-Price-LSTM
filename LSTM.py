@@ -16,15 +16,15 @@ dataset = pd.read_csv('dataset.csv')
 ### Set basic parameters ###
 timesteps = 60
 test_size = 0.2     # 0.2 = 20% of the dataset
-parameters = {'layers': [4, 6, 8],  # At least 4
-              'units_per_layer': [50, 100, 200],
+parameters = {'hidden_layers': [3,6],
+              'units_per_layer': [100,200],
               'dropout': [0.2],
-              'batch_size': [100, 1000],
+              'batch_size': [64,128],
               'epochs': [50],
-              'optimizer': ['adam', 'rmsprop'],
-              'loss': ['mean_squared_error', 'binary_crossentropy'],
-              'metrics': ['accuracy']}
-
+              'optimizer': ['adam','rmsprop'],
+              'loss': ['mean_squared_error'],
+              'metrics': ['accuracy']}  
+   
 ### Processing the specific dataset ###
 # The code an next assumes that the prediction(y) is the last column of the dataset.
 # If your dataset isn't ready, process it here.
@@ -78,14 +78,14 @@ from keras.layers import LSTM
 from keras.layers import Dropout
 
 ### Build the regressor ###         
-def build_regressor(layers, units_per_layer, dropout, optimizer, loss, metrics):
+def build_regressor(hidden_layers, units_per_layer, dropout, optimizer, loss, metrics):
     # Initialising the LSTM
     regressor = Sequential()    
     # Adding the first LSTM layer and some Dropout regularisation
     regressor.add(LSTM(units = units_per_layer, return_sequences = True, input_shape = (x_train.shape[1], x_train.shape[2])))
     regressor.add(Dropout(dropout))    
-    # Adding new LSTM layers if needed
-    for i in range(0, layers-4):
+    # Adding new LSTM hidden layers if needed
+    for i in range(0, hidden_layers-1):
         regressor.add(LSTM(units = units_per_layer, return_sequences = True))
         regressor.add(Dropout(dropout))
     # Adding the pre-last LSTM layer
@@ -99,7 +99,7 @@ def build_regressor(layers, units_per_layer, dropout, optimizer, loss, metrics):
 
 ### Train the model ###         
 def fit_regressor(epochs, batch_size):
-    return regressor.fit(x_train, y_train, epochs = epochs, batch_size = batch_size, validation_data=(x_test, y_test),  shuffle=False)
+    return regressor.fit(x_train, y_train, epochs = epochs, batch_size = batch_size, validation_data=(x_test, y_test),  shuffle=True)
 
 ### Start Evaluating and Tuning our LSTM model ###
 import matplotlib.pyplot as plt
@@ -107,7 +107,7 @@ results = []
 best_parameters = []
 best_loss = float("inf")
 best_model = Sequential()  
-for layers in parameters["layers"]:
+for layers in parameters["hidden_layers"]:
     for units_per_layer in parameters["units_per_layer"]:
         for dropout in parameters["dropout"]:
             for batch_size in parameters["batch_size"]:
@@ -125,21 +125,31 @@ for layers in parameters["layers"]:
                                 plt.ylabel('Error')
                                 plt.legend()
                                 plt.show()
+                                plt.plot(history.history['acc'], color = 'red', label = 'Train')
+                                plt.plot(history.history['val_acc'], color = 'blue', label = 'Test')
+                                plt.xlabel('Epochs')
+                                plt.ylabel('Accuracy')
+                                plt.legend()
+                                plt.show()
                                 print('Layers:\t\t',layers,'\nUnits per layer:',units_per_layer,'\nDropout:\t',dropout,'\nBatch size:\t', batch_size, 
                                       '\nEpochs:\t\t',epochs,'\nOptimizer:\t',optimizer,'\nLoss function:\t',loss,'\nMetrics:\t',metrics,
-                                      '\nLoss (Train):\t',history.history['loss'][0],'\nLoss (Test):\t',history.history['val_loss'][0],'\n\n')
+                                      '\nLoss (Train):\t',history.history['loss'][0],'\nLoss (Test):\t',history.history['val_loss'][0],
+                                      '\nAccuracy(Train):',history.history['acc'][0],'\nAccuracy(Test):',history.history['val_acc'][0],'\n\n')
                                 if float(history.history['loss'][0]) < best_loss:
                                     best_model = regressor                                 
                                     best_loss = float(history.history['loss'][0])
                                     best_parameters.clear()
                                     best_parameters.append([layers, units_per_layer, dropout, batch_size, epochs, optimizer, loss, metrics,
-                                                           float(history.history['loss'][0]), float(history.history['val_loss'][0])])
+                                                           float(history.history['loss'][0]), float(history.history['val_loss'][0]),
+                                                           float(history.history['acc'][0]), float(history.history['val_acc'][0])])
                                 
 ### Show the best parameters ###
 print('************* Best parameters *************')
 print('* Layers:\t',best_parameters[0][0],'\n* Units:\t',best_parameters[0][1],'\n* Dropout:\t',best_parameters[0][2],'\n* Batch size:\t', 
       best_parameters[0][3],'\n* Epochs:\t',best_parameters[0][4],'\n* Optimizer:\t',best_parameters[0][5],'\n* Loss function:',best_parameters[0][6],
-      '\n* Metrics:\t',best_parameters[0][7],'\n* Loss (Train):\t',best_parameters[0][8],'\n* Loss (Test):\t',best_parameters[0][9])
+      '\n* Metrics:\t',best_parameters[0][7],'\n* Loss (Train):\t',best_parameters[0][8],'\n* Loss (Test):\t',best_parameters[0][9],
+      '\n* Accuracy(Train):',best_parameters[0][8],'\n* Accuracy(Test):',best_parameters[0][9])
+
 print('*******************************************\n')
 
 
