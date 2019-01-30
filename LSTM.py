@@ -14,17 +14,20 @@ import pandas as pd
 dataset = pd.read_csv('dataset.csv')
 
 ### Set basic parameters ###
-timesteps = 60
+timesteps = 120
 test_size = 0.2     # 0.2 = 20% of the dataset
-parameters = {'hidden_layers': [3,6],
-              'units_per_layer': [100,200],
-              'dropout': [0.2],
-              'batch_size': [64,128],
-              'epochs': [50],
-              'optimizer': ['adam','rmsprop'],
+
+### Set hyperparameters ###
+from keras.optimizers import Adam
+parameters = {'hidden_layers': [3, 6],
+              'units_per_layer': [50, 100, 200],
+              'dropout': [0.0, 0.2, 0.4],
+              'batch_size': [128, 256],
+              'epochs': [100],
+              'optimizer': [Adam(lr = 0.001)],
               'loss': ['mean_squared_error'],
               'metrics': ['accuracy']}  
-   
+
 ### Processing the specific dataset ###
 # The code an next assumes that the prediction(y) is the last column of the dataset.
 # If your dataset isn't ready, process it here.
@@ -119,23 +122,17 @@ for layers in parameters["hidden_layers"]:
                                 history = fit_regressor(epochs, batch_size)
                                 results.append([layers, units_per_layer, dropout, batch_size, epochs, optimizer, loss, metrics, 
                                                 float(history.history['loss'][0]), float(history.history['val_loss'][0])])                                
-                                plt.plot(history.history['loss'], color = 'red', label = 'Train')
-                                plt.plot(history.history['val_loss'], color = 'blue', label = 'Test')
+                                plt.plot(history.history['val_loss'][2:epochs], color = 'blue', label = 'Test')
+                                plt.plot(history.history['loss'][2:epochs], color = 'red', label = 'Train')
                                 plt.xlabel('Epochs')
                                 plt.ylabel('Error')
                                 plt.legend()
                                 plt.show()
-                                plt.plot(history.history['acc'], color = 'red', label = 'Train')
-                                plt.plot(history.history['val_acc'], color = 'blue', label = 'Test')
-                                plt.xlabel('Epochs')
-                                plt.ylabel('Accuracy')
-                                plt.legend()
-                                plt.show()
                                 print('Layers:\t\t',layers,'\nUnits per layer:',units_per_layer,'\nDropout:\t',dropout,'\nBatch size:\t', batch_size, 
                                       '\nEpochs:\t\t',epochs,'\nOptimizer:\t',optimizer,'\nLoss function:\t',loss,'\nMetrics:\t',metrics,
-                                      '\nLoss (Train):\t',history.history['loss'][0],'\nLoss (Test):\t',history.history['val_loss'][0],
-                                      '\nAccuracy(Train):',history.history['acc'][0],'\nAccuracy(Test):',history.history['val_acc'][0],'\n\n')
-                                if float(history.history['loss'][0]) < best_loss:
+                                      '\nLoss (Train):\t',history.history['loss'][epochs-1],'\nLoss (Test):\t',history.history['val_loss'][epochs-1],'\n\n')
+                                # Keep the best model
+                                if float(history.history['loss'][epochs-1]) < best_loss:
                                     best_model = regressor                                 
                                     best_loss = float(history.history['loss'][0])
                                     best_parameters.clear()
@@ -147,10 +144,9 @@ for layers in parameters["hidden_layers"]:
 print('************* Best parameters *************')
 print('* Layers:\t',best_parameters[0][0],'\n* Units:\t',best_parameters[0][1],'\n* Dropout:\t',best_parameters[0][2],'\n* Batch size:\t', 
       best_parameters[0][3],'\n* Epochs:\t',best_parameters[0][4],'\n* Optimizer:\t',best_parameters[0][5],'\n* Loss function:',best_parameters[0][6],
-      '\n* Metrics:\t',best_parameters[0][7],'\n* Loss (Train):\t',best_parameters[0][8],'\n* Loss (Test):\t',best_parameters[0][9],
-      '\n* Accuracy(Train):',best_parameters[0][8],'\n* Accuracy(Test):',best_parameters[0][9])
+      '\n* Metrics:\t',best_parameters[0][7],'\n* Loss (Train):\t',best_parameters[0][8],'\n* Loss (Test):\t',best_parameters[0][9])
 
-print('*******************************************\n')
+print('\n*******************************************\n')
 
 
 ###########################################
@@ -161,7 +157,7 @@ print('*******************************************\n')
 for_predict = x_test[0,:] # For example, take the first timeseries of the Test set
 
 ### Reshape and predict ###
-# It will use tha last trained regressor #
+# It will use the best trained regressor #
 for_predict = np.reshape(for_predict, (1,for_predict.shape[0], for_predict.shape[1]))
 predictions_scaled = best_model.predict(for_predict)
 
@@ -176,6 +172,8 @@ predictions = predictions_scaled[:,dataset_scaled.shape[1]-1]
 ### Calculate RMSE for the new predictions ###
 # ADD HERE the actual values to the actual_values (without normalization)
 actual_values = [1.110] # Just an example
+
+# Calculate RMS
 from math import sqrt
 from sklearn.metrics import mean_squared_error
 rmse = sqrt(mean_squared_error(predictions, actual_values))
