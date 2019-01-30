@@ -1,6 +1,6 @@
 # Predict Stock Price using LSTM
 
-## Only for educational purposes
+<b><i>Only for educational purposes</i></b>
 
 The goal is to be able to predict the future price of a currency/share using Artificial Intelligence. More specifically, having the history of Euro and Dollar exchange rates, we will build an LSTM  Neural Network which will predict the price of the next day.
 
