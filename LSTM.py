@@ -148,6 +148,8 @@ print('* Layers:\t',best_parameters[0][0],'\n* Units:\t',best_parameters[0][1],'
 
 print('\n*******************************************\n')
 
+### Save the weights ###
+best_model.save_weights('./checkpoint')
 
 ###########################################
 ### Part 3 - Making a single prediction ###
